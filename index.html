@@ -42,7 +42,32 @@ line-height:1.6;margin:0 0 12px;color:#526174}
 <main>
 <input id="search" placeholder="知識を検索..." oninput="render()">
 
-<button class="primary" onclick="newEntry()">＋ 新しい知識を登録</button>
+<
+<button class="primary" style="margin-top:10px;background:#28745a"
+ onclick="showImport()">AI情報を取り込む</button>
+
+<section id="importArea" class="card" style="display:none">
+<h3>AI情報取り込み</h3>
+<p class="small">ChatGPTで整理した情報を貼り付けてください。</p>
+<textarea id="importText"
+ placeholder="ChatGPTの調査結果をここに貼り付け"></textarea>
+<button class="primary" onclick="previewImport()">情報を振り分ける</button>
+
+<div id="importPreview" style="display:none;margin-top:15px">
+<h3>取り込み内容の確認</h3>
+<label>タイトル</label>
+<input id="importTitle">
+<label>本文</label>
+<textarea id="importBody"></textarea>
+<label>参考URL</label>
+<div id="importUrls" class="small"></div>
+<button class="primary" style="background:#28745a"
+ onclick="saveImported()">この内容を保存する</button>
+<button class="secondary" style="width:100%;margin-top:8px"
+ onclick="hideImport()">キャンセル</button>
+</div>
+</section>
+
 
 <section id="formArea" class="card">
 <h3 id="formTitle">新しい知識</h3>
