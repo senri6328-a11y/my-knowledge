@@ -1,1 +1,190 @@
 
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#263b59">
+<title>My Knowledge</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;background:#f3f5f8;color:#253247;
+font-family:system-ui,sans-serif}
+header{background:#263b59;color:white;padding:22px 18px}
+header h1{margin:0;font-size:23px}
+header p{margin:5px 0 0;font-size:13px;opacity:.8}
+main{max-width:650px;margin:auto;padding:16px}
+input,textarea{width:100%;padding:13px;border:1px solid #d5dce5;
+border-radius:10px;font-size:16px;background:white;margin-bottom:10px}
+textarea{min-height:150px;resize:vertical}
+button{border:0;border-radius:9px;padding:12px 16px;
+font-size:15px;font-weight:600;cursor:pointer}
+.primary{background:#263b59;color:white;width:100%}
+.secondary{background:#e2e8f0;color:#263b59}
+.danger{background:#fee2e2;color:#b91c1c}
+.card{background:white;border:1px solid #e0e5ec;
+border-radius:12px;padding:15px;margin:12px 0}
+.card h3{margin:0 0 8px;font-size:17px}
+.card p{white-space:pre-wrap;overflow-wrap:anywhere;
+line-height:1.6;margin:0 0 12px;color:#526174}
+.actions{display:flex;gap:8px}
+.actions button{flex:1}
+.small{font-size:12px;color:#718096}
+#formArea{display:none}
+#empty{text-align:center;padding:35px;color:#718096}
+</style>
+</head>
+<body>
+<header>
+<h1>📚 My Knowledge</h1>
+<p>自分専用の知識データベース</p>
+</header>
+<main>
+<input id="search" placeholder="知識を検索..." oninput="render()">
+
+<button class="primary" onclick="newEntry()">＋ 新しい知識を登録</button>
+
+<section id="formArea" class="card">
+<h3 id="formTitle">新しい知識</h3>
+<input id="title" placeholder="タイトル">
+<textarea id="body" placeholder="知識・メモを入力してください"></textarea>
+<div class="actions">
+<button class="primary" onclick="saveEntry()">保存する</button>
+<button class="secondary" onclick="cancelEdit()">キャンセル</button>
+</div>
+</section>
+
+<p class="small" id="count">登録 0件</p>
+<section id="list"></section>
+</main>
+
+<script>
+let db;
+let editingId=null;
+
+const request=indexedDB.open("MyKnowledgeDB",1);
+
+request.onupgradeneeded=e=>{
+ const database=e.target.result;
+ if(!database.objectStoreNames.contains("entries")){
+  database.createObjectStore("entries",{keyPath:"id",autoIncrement:true});
+ }
+};
+
+request.onsuccess=e=>{
+ db=e.target.result;
+ render();
+};
+
+request.onerror=()=>alert("データベースを開けませんでした");
+
+function newEntry(){
+ editingId=null;
+ document.getElementById("formTitle").textContent="新しい知識";
+ document.getElementById("title").value="";
+ document.getElementById("body").value="";
+ document.getElementById("formArea").style.display="block";
+ window.scrollTo(0,0);
+}
+
+function cancelEdit(){
+ document.getElementById("formArea").style.display="none";
+ editingId=null;
+}
+
+function saveEntry(){
+ const title=document.getElementById("title").value.trim();
+ const body=document.getElementById("body").value.trim();
+ if(!title){alert("タイトルを入力してください");return}
+ if(!body){alert("本文を入力してください");return}
+
+ const store=db.transaction("entries","readwrite").objectStore("entries");
+ const entry={title,body,updated:new Date().toISOString()};
+
+ if(editingId!==null){
+  entry.id=editingId;
+  store.put(entry);
+ }else{
+  entry.created=new Date().toISOString();
+  store.add(entry);
+ }
+
+ store.transaction.oncomplete=()=>{
+  cancelEdit();
+  render();
+ };
+}
+
+function render(){
+ if(!db)return;
+ const keyword=document.getElementById("search").value.toLowerCase();
+ const store=db.transaction("entries","readonly").objectStore("entries");
+ const req=store.getAll();
+
+ req.onsuccess=()=>{
+  const entries=req.result.sort((a,b)=>b.id-a.id);
+  const filtered=entries.filter(e=>
+   e.title.toLowerCase().includes(keyword)||
+   e.body.toLowerCase().includes(keyword)
+  );
+
+  document.getElementById("count").textContent=
+   `登録 ${entries.length}件 / 検索結果 ${filtered.length}件`;
+
+  const list=document.getElementById("list");
+  list.innerHTML="";
+
+  if(filtered.length===0){
+   list.innerHTML='<div id="empty">該当する知識はありません</div>';
+   return;
+  }
+
+  filtered.forEach(e=>{
+   const card=document.createElement("article");
+   card.className="card";
+
+   const heading=document.createElement("h3");
+   heading.textContent=e.title;
+
+   const paragraph=document.createElement("p");
+   paragraph.textContent=e.body;
+
+   const actions=document.createElement("div");
+   actions.className="actions";
+
+   const edit=document.createElement("button");
+   edit.className="secondary";
+   edit.textContent="編集";
+   edit.onclick=()=>editEntry(e);
+
+   const del=document.createElement("button");
+   del.className="danger";
+   del.textContent="削除";
+   del.onclick=()=>deleteEntry(e.id);
+
+   actions.append(edit,del);
+   card.append(heading,paragraph,actions);
+   list.append(card);
+  });
+ };
+}
+
+function editEntry(e){
+ editingId=e.id;
+ document.getElementById("formTitle").textContent="知識を編集";
+ document.getElementById("title").value=e.title;
+ document.getElementById("body").value=e.body;
+ document.getElementById("formArea").style.display="block";
+ window.scrollTo(0,0);
+}
+
+function deleteEntry(id){
+ if(!confirm("この知識を削除しますか？"))return;
+ const store=db.transaction("entries","readwrite").objectStore("entries");
+ store.delete(id);
+ store.transaction.oncomplete=render;
+}
+</script>
+</body>
+</html>
+
