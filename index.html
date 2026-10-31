@@ -40,9 +40,11 @@ line-height:1.6;margin:0 0 12px;color:#526174}
 <p>自分専用の知識データベース</p>
 </header>
 <main>
+
 <input id="search" placeholder="知識を検索..." oninput="render()">
 
-<
+<button class="primary" onclick="newEntry()">＋ 新しい知識を登録</button>
+
 <button class="primary" style="margin-top:10px;background:#28745a"
  onclick="showImport()">AI情報を取り込む</button>
 
@@ -86,6 +88,8 @@ line-height:1.6;margin:0 0 12px;color:#526174}
 <script>
 let db;
 let editingId=null;
+let importedReferences=[];
+let editingReferences=[];
 
 const request=indexedDB.open("MyKnowledgeDB",1);
 
@@ -103,7 +107,97 @@ request.onsuccess=e=>{
 
 request.onerror=()=>alert("データベースを開けませんでした");
 
+
+function showImport(){
+ document.getElementById("importArea").style.display="block";
+ document.getElementById("importPreview").style.display="none";
+ window.scrollTo(0,0);
+}
+
+function hideImport(){
+ document.getElementById("importArea").style.display="none";
+}
+
+function previewImport(){
+ const raw=document.getElementById("importText").value.trim();
+
+ const titleMatch=raw.match(/【タイトル】\s*([\s\S]*?)(?=\n【本文】)/);
+ const bodyMatch=raw.match(/【本文】\s*([\s\S]*?)(?=\n【参考URL】|$)/);
+ const urlMatch=raw.match(/【参考URL】\s*([\s\S]*)$/);
+
+ if(!titleMatch || !bodyMatch){
+  alert("指定形式の情報が見つかりません。");
+  return;
+ }
+
+ const title=titleMatch[1].trim();
+ const body=bodyMatch[1].trim();
+
+ importedReferences=urlMatch
+  ? [...new Set(urlMatch[1].match(/https?:\/\/[^\s<>]+/g)||[])]
+  : [];
+
+ if(!title || !body){
+  alert("タイトルと本文を確認してください。");
+  return;
+ }
+
+ document.getElementById("importTitle").value=title;
+ document.getElementById("importBody").value=body;
+
+ const urls=document.getElementById("importUrls");
+ urls.replaceChildren();
+
+ if(importedReferences.length===0){
+  urls.textContent="参考URLなし";
+ }else{
+  importedReferences.forEach(url=>{
+   const a=document.createElement("a");
+   a.href=url;
+   a.textContent=url;
+   a.target="_blank";
+   a.rel="noopener noreferrer";
+   const p=document.createElement("p");
+   p.append(a);
+   urls.append(p);
+  });
+ }
+
+ document.getElementById("importPreview").style.display="block";
+}
+
+function saveImported(){
+ const title=document.getElementById("importTitle").value.trim();
+ const body=document.getElementById("importBody").value.trim();
+
+ if(!title || !body){
+  alert("タイトルと本文を入力してください。");
+  return;
+ }
+
+ const store=db.transaction("entries","readwrite")
+  .objectStore("entries");
+
+ store.add({
+  title,
+  body,
+  references:importedReferences,
+  created:new Date().toISOString(),
+  updated:new Date().toISOString()
+ });
+
+ store.transaction.oncomplete=()=>{
+  document.getElementById("importText").value="";
+  document.getElementById("importPreview").style.display="none";
+  hideImport();
+  render();
+  alert("知識を保存しました。");
+ };
+}
+
+ 
 function newEntry(){
+ editingReferences=[];
  editingId=null;
  document.getElementById("formTitle").textContent="新しい知識";
  document.getElementById("title").value="";
@@ -124,7 +218,11 @@ function saveEntry(){
  if(!body){alert("本文を入力してください");return}
 
  const store=db.transaction("entries","readwrite").objectStore("entries");
- const entry={title,body,updated:new Date().toISOString()};
+ const entry={
+ title,body,
+ references:editingReferences,
+ updated:new Date().toISOString()
+};
 
  if(editingId!==null){
   entry.id=editingId;
@@ -188,13 +286,30 @@ function render(){
    del.onclick=()=>deleteEntry(e.id);
 
    actions.append(edit,del);
-   card.append(heading,paragraph,actions);
+   
+const refs=document.createElement("div");
+refs.className="small";
+
+(e.references||[]).forEach(url=>{
+ const a=document.createElement("a");
+ a.href=url;
+ a.textContent="参考資料を開く ↗";
+ a.target="_blank";
+ a.rel="noopener noreferrer";
+ const p=document.createElement("p");
+ p.append(a);
+ refs.append(p);
+});
+
+card.append(heading,paragraph,refs,actions);
+
    list.append(card);
   });
  };
 }
 
 function editEntry(e){
+ editingReferences=e.references||[];
  editingId=e.id;
  document.getElementById("formTitle").textContent="知識を編集";
  document.getElementById("title").value=e.title;
