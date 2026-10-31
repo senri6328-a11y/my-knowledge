@@ -200,8 +200,8 @@ function saveImported(){
 }
 
  
-function newEntry(){
- function summarizeKeyword(){
+
+function summarizeKeyword(){
  const keyword=document.getElementById("search").value.trim();
 
  if(!keyword){
@@ -238,12 +238,11 @@ ${keyword}
 【参考URL】
 URLを1行に1つずつ記載`;
 
- window.open("https://chatgpt.com/","_blank");
-
  if(navigator.clipboard && navigator.clipboard.writeText){
   navigator.clipboard.writeText(prompt)
    .then(()=>{
-    alert("調査依頼文をコピーしました。ChatGPTに貼り付けて送信してください。");
+    alert("調査依頼文をコピーしました。ChatGPTに貼り付けてください。");
+    window.open("https://chatgpt.com/","_blank");
    })
    .catch(()=>{
     window.prompt("以下の文章をコピーしてください。",prompt);
@@ -251,7 +250,9 @@ URLを1行に1つずつ記載`;
  }else{
   window.prompt("以下の文章をコピーしてください。",prompt);
  }
- }
+}
+
+function newEntry(){
  editingReferences=[];
  editingId=null;
  document.getElementById("formTitle").textContent="新しい知識";
@@ -260,6 +261,7 @@ URLを1行に1つずつ記載`;
  document.getElementById("formArea").style.display="block";
  window.scrollTo(0,0);
 }
+
 
 function cancelEdit(){
  document.getElementById("formArea").style.display="none";
