@@ -203,6 +203,7 @@ function saveImported(){
 
 
 
+
 function summarizeKeyword(){
  const keyword=document.getElementById("search").value.trim();
 
@@ -221,7 +222,7 @@ ${keyword}
 ・複数の情報源を比較する
 ・技術的な仕組みや用途を具体的に解説する
 ・実務で役立つ情報を含める
-・情報が不確かな場合は断定しない
+・不確かな情報は断定しない
 ・参考URLを必ず記載する
 
 【出力形式】
@@ -242,29 +243,31 @@ URLを1行に1つずつ記載`;
  const area=document.createElement("textarea");
  area.value=prompt;
  area.style.position="fixed";
- area.style.left="-9999px";
- document.body.appendChild(area);
- area.focus();
- area.select();
- area.setSelectionRange(0,area.value.length);
+ area.style.left="10px";
+ area.style.top="10px";
+ area.style.width="90%";
+ area.style.height="70%";
+ area.style.zIndex="9999";
+ area.style.background="white";
+ area.style.color="black";
+ area.style.padding="15px";
+ area.style.fontSize="16px";
+ area.style.border="2px solid #7252a3";
 
- let copied=false;
+ const close=document.createElement("button");
+ close.textContent="閉じる";
+ close.style.position="fixed";
+ close.style.top="75%";
+ close.style.left="10px";
+ close.style.zIndex="10000";
+ close.onclick=()=>{
+  area.remove();
+  close.remove();
+ };
 
- try{
-  copied=document.execCommand("copy");
- }catch(e){
-  copied=false;
- }
-
- area.remove();
-
- if(copied){
-  alert("調査依頼文をコピーしました。ChatGPTに貼り付けてください。");
-  window.open("https://chatgpt.com/","_blank");
- }else{
-  window.prompt("自動コピーできませんでした。文章を長押ししてコピーしてください。",prompt);
- }
+ document.body.append(area,close);
 }
+
 
 
 
