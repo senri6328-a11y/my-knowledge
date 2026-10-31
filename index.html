@@ -201,6 +201,57 @@ function saveImported(){
 
  
 function newEntry(){
+ function summarizeKeyword(){
+ const keyword=document.getElementById("search").value.trim();
+
+ if(!keyword){
+  alert("先に検索欄へ単語を入力してください。");
+  return;
+ }
+
+ const prompt=`以下のテーマについて、複数の信頼できる情報源を調査し、正確にまとめてください。
+
+【調査テーマ】
+${keyword}
+
+【調査条件】
+・公式資料、公的機関、メーカー資料を優先する
+・複数の情報源を比較する
+・技術的な仕組みや用途を具体的に解説する
+・実務で役立つ情報を含める
+・情報が不確かな場合は断定しない
+・参考URLを必ず記載する
+
+【出力形式】
+次の形式を厳守してください。
+
+【タイトル】
+${keyword}
+
+【本文】
+概要：
+基本知識：
+詳細解説：
+重要ポイント：
+注意事項：
+
+【参考URL】
+URLを1行に1つずつ記載`;
+
+ window.open("https://chatgpt.com/","_blank");
+
+ if(navigator.clipboard && navigator.clipboard.writeText){
+  navigator.clipboard.writeText(prompt)
+   .then(()=>{
+    alert("調査依頼文をコピーしました。ChatGPTに貼り付けて送信してください。");
+   })
+   .catch(()=>{
+    window.prompt("以下の文章をコピーしてください。",prompt);
+   });
+ }else{
+  window.prompt("以下の文章をコピーしてください。",prompt);
+ }
+ }
  editingReferences=[];
  editingId=null;
  document.getElementById("formTitle").textContent="新しい知識";
