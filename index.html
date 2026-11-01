@@ -662,6 +662,7 @@ function render(){
     const refDetail=document.createElement("details");
     refDetail.className="section-item";
 
+
 function render(){
  if(!db)return;
 
@@ -671,7 +672,6 @@ function render(){
 
  req.onsuccess=()=>{
   const entries=req.result.sort((a,b)=>b.id-a.id);
-
   const filtered=entries.filter(e=>
    e.title.toLowerCase().includes(keyword)||
    e.body.toLowerCase().includes(keyword)
@@ -695,7 +695,6 @@ function render(){
    card.style.margin="6px 0";
 
    const detail=document.createElement("details");
-
    const summary=document.createElement("summary");
    summary.textContent="📘 "+e.title;
    summary.style.fontWeight="600";
@@ -714,7 +713,6 @@ function render(){
    body.style.lineHeight="1.7";
    body.style.fontSize="14px";
    body.style.color="#526174";
-
    content.append(body);
 
    if(e.references && e.references.length){
@@ -764,6 +762,7 @@ function render(){
   });
  };
 }
+    
 function editEntry(e){
  editingReferences=e.references||[];
  editingId=e.id;
