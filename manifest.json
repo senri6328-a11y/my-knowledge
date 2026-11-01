@@ -1,10 +1,10 @@
 {
-  "id": "/my-knowledge/",
+  "id": "/",
   "name": "My Knowledge",
   "short_name": "Knowledge",
   "description": "自分専用の知識データベース",
-  "start_url": "/my-knowledge/",
-  "scope": "/my-knowledge/",
+  "start_url": "/",
+  "scope": "/",
   "display": "standalone",
   "background_color": "#f3f5f8",
   "theme_color": "#263b59",
