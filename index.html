@@ -51,6 +51,9 @@ line-height:1.6;margin:0 0 12px;color:#526174}
 .section-item summary{
  padding:12px;
  font-weight:600;
+
+
+ 
  cursor:pointer;
  color:#263b59;
 }
@@ -227,18 +230,46 @@ function restoreData(event){
    }
 
    const tx=db.transaction("entries","readwrite");
-   const store=tx.objectStore("entries");
+   const tx=db.transaction("entries","readwrite");
+const store=tx.objectStore("entries");
 
-   data.entries.forEach(entry=>{
-    const newEntry={...entry};
-    delete newEntry.id;
-    store.add(newEntry);
-   });
+let added=0;
+let skipped=0;
 
-   tx.oncomplete=()=>{
-    render();
-    alert(data.entries.length+"件のデータを復元しました");
-   };
+const getRequest=store.getAll();
+
+getRequest.onsuccess=()=>{
+ const existing=getRequest.result;
+
+ data.entries.forEach(entry=>{
+  const duplicate=existing.some(old=>
+   old.title===entry.title &&
+   old.body===entry.body
+  );
+
+  if(duplicate){
+   skipped++;
+  }else{
+   const newEntry={...entry};
+   delete newEntry.id;
+   store.add(newEntry);
+   added++;
+  }
+ });
+};
+
+tx.oncomplete=()=>{
+ render();
+ alert(
+  "復元完了\n"+
+  "追加："+added+"件\n"+
+  "重複スキップ："+skipped+"件"
+ );
+};
+
+tx.onerror=()=>{
+ alert("復元に失敗しました");
+};
 
    tx.onerror=()=>{
     alert("復元に失敗しました");
