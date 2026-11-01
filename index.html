@@ -662,30 +662,88 @@ function render(){
     const refDetail=document.createElement("details");
     refDetail.className="section-item";
 
-    const refSummary=document.createElement("summary");
-    refSummary.textContent=`参考URL（${e.references.length}件）`;
+function render(){
+ if(!db)return;
 
-    const refContent=document.createElement("div");
-    refContent.className="section-content";
+ const keyword=document.getElementById("search").value.toLowerCase();
+ const store=db.transaction("entries","readonly").objectStore("entries");
+ const req=store.getAll();
+
+ req.onsuccess=()=>{
+  const entries=req.result.sort((a,b)=>b.id-a.id);
+
+  const filtered=entries.filter(e=>
+   e.title.toLowerCase().includes(keyword)||
+   e.body.toLowerCase().includes(keyword)
+  );
+
+  document.getElementById("count").textContent=
+   `登録 ${entries.length}件 / 検索結果 ${filtered.length}件`;
+
+  const list=document.getElementById("list");
+  list.innerHTML="";
+
+  if(filtered.length===0){
+   list.innerHTML='<div id="empty">該当する知識はありません</div>';
+   return;
+  }
+
+  filtered.forEach(e=>{
+   const card=document.createElement("article");
+   card.className="card";
+   card.style.padding="10px 13px";
+   card.style.margin="6px 0";
+
+   const detail=document.createElement("details");
+
+   const summary=document.createElement("summary");
+   summary.textContent="📘 "+e.title;
+   summary.style.fontWeight="600";
+   summary.style.fontSize="15px";
+   summary.style.padding="5px 0";
+   summary.style.cursor="pointer";
+   summary.style.color="#263b59";
+
+   const content=document.createElement("div");
+   content.style.marginTop="10px";
+
+   const body=document.createElement("div");
+   body.textContent=e.body;
+   body.style.whiteSpace="pre-wrap";
+   body.style.overflowWrap="anywhere";
+   body.style.lineHeight="1.7";
+   body.style.fontSize="14px";
+   body.style.color="#526174";
+
+   content.append(body);
+
+   if(e.references && e.references.length){
+    const refs=document.createElement("details");
+    refs.style.marginTop="12px";
+
+    const refTitle=document.createElement("summary");
+    refTitle.textContent=`参考URL（${e.references.length}件）`;
+
+    const refList=document.createElement("div");
 
     e.references.forEach(url=>{
+     const p=document.createElement("p");
      const a=document.createElement("a");
      a.href=url;
      a.textContent=url;
      a.target="_blank";
      a.rel="noopener noreferrer";
-     const p=document.createElement("p");
      p.append(a);
-     refContent.append(p);
+     refList.append(p);
     });
 
-    refDetail.append(refSummary,refContent);
-    card.append(refDetail);
+    refs.append(refTitle,refList);
+    content.append(refs);
    }
 
-   // 編集・削除
    const actions=document.createElement("div");
    actions.className="actions";
+   actions.style.marginTop="12px";
 
    const edit=document.createElement("button");
    edit.className="secondary";
@@ -698,14 +756,14 @@ function render(){
    del.onclick=()=>deleteEntry(e.id);
 
    actions.append(edit,del);
-   card.append(actions);
+   content.append(actions);
 
+   detail.append(summary,content);
+   card.append(detail);
    list.append(card);
   });
  };
 }
-
-
 function editEntry(e){
  editingReferences=e.references||[];
  editingId=e.id;
