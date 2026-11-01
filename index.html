@@ -204,6 +204,7 @@ function saveImported(){
 
 
 
+
 function summarizeKeyword(){
  const keyword=document.getElementById("search").value.trim();
 
@@ -246,29 +247,63 @@ URLを1行に1つずつ記載`;
  area.style.left="10px";
  area.style.top="10px";
  area.style.width="90%";
- area.style.height="70%";
+ area.style.height="65%";
  area.style.zIndex="9999";
  area.style.background="white";
  area.style.color="black";
  area.style.padding="15px";
  area.style.fontSize="16px";
- area.style.border="2px solid #7252a3";
+
+ const copy=document.createElement("button");
+ copy.textContent="📋 調査依頼文をコピー";
+ copy.style.position="fixed";
+ copy.style.top="68%";
+ copy.style.left="10px";
+ copy.style.width="90%";
+ copy.style.background="#28745a";
+ copy.style.color="white";
+ copy.style.zIndex="10000";
+
+ const message=document.createElement("p");
+ message.style.position="fixed";
+ message.style.top="76%";
+ message.style.left="10px";
+ message.style.zIndex="10000";
+ message.style.background="white";
+ message.style.padding="10px";
 
  const close=document.createElement("button");
  close.textContent="閉じる";
  close.style.position="fixed";
- close.style.top="75%";
+ close.style.top="86%";
  close.style.left="10px";
+ close.style.width="90%";
  close.style.zIndex="10000";
+
+ copy.onclick=async()=>{
+  try{
+   await navigator.clipboard.writeText(prompt);
+   message.textContent="コピーしました！ChatGPTに貼り付けてください。";
+  }catch(e){
+   area.focus();
+   area.select();
+   area.setSelectionRange(0,area.value.length);
+   const result=document.execCommand("copy");
+   message.textContent=result
+    ?"コピーしました！"
+    :"自動コピーできません。文章を長押ししてコピーしてください。";
+  }
+ };
+
  close.onclick=()=>{
   area.remove();
+  copy.remove();
+  message.remove();
   close.remove();
  };
 
- document.body.append(area,close);
+ document.body.append(area,copy,message,close);
 }
-
-
 
 
 function newEntry(){
