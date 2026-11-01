@@ -91,6 +91,19 @@ line-height:1.6;margin:0 0 12px;color:#526174}
 
 <button class="primary" style="margin-top:10px;background:#28745a"
  onclick="showImport()">AI情報を取り込む</button>
+ <div style="display:flex;gap:8px;margin-top:10px">
+ <button class="secondary" style="flex:1"
+  onclick="backupData()">📥 バックアップ</button>
+ <button class="secondary" style="flex:1"
+  onclick="document.getElementById('restoreFile').click()">
+  📤 データ復元
+ </button>
+</div>
+
+<input type="file" id="restoreFile"
+ accept=".json,application/json"
+ style="display:none"
+ onchange="restoreData(event)">
 
 <section id="importArea" class="card" style="display:none">
 <h3>AI情報取り込み</h3>
@@ -150,6 +163,96 @@ request.onsuccess=e=>{
 };
 
 request.onerror=()=>alert("データベースを開けませんでした");
+ // バックアップ機能
+function backupData(){
+ const tx=db.transaction("entries","readonly");
+ const store=tx.objectStore("entries");
+ const request=store.getAll();
+
+ request.onsuccess=()=>{
+  const data={
+   app:"My Knowledge",
+   version:1,
+   entries:request.result
+  };
+
+  const blob=new Blob(
+   [JSON.stringify(data,null,2)],
+   {type:"application/json"}
+  );
+
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement("a");
+  const date=new Date().toISOString().slice(0,10);
+  a.href=url;
+  a.download="MyKnowledge_backup_"+date+".json";
+  a.click();
+
+  setTimeout(()=>URL.revokeObjectURL(url),1000);
+ };
+ request.onerror=()=>alert("バックアップに失敗しました");
+}
+
+// データ復元機能
+function restoreData(event){
+ const file=event.target.files[0];
+ if(!file)return;
+
+ if(!confirm("バックアップデータを追加します。よろしいですか？")) {
+  event.target.value="";
+  return;
+ }
+
+ const reader=new FileReader();
+
+ reader.onload=()=>{
+  try{
+   const data=JSON.parse(reader.result);
+
+   if(data.app!=="My Knowledge" ||
+      data.version!==1 ||
+      !Array.isArray(data.entries)){
+    throw new Error("形式が違います");
+   }
+
+   if(data.entries.some(e=>
+      typeof e.title!=="string" ||
+      typeof e.body!=="string")){
+    throw new Error("データの内容が不正です");
+   }
+
+   if(data.entries.length===0){
+    alert("復元するデータがありません");
+    return;
+   }
+
+   const tx=db.transaction("entries","readwrite");
+   const store=tx.objectStore("entries");
+
+   data.entries.forEach(entry=>{
+    const newEntry={...entry};
+    delete newEntry.id;
+    store.add(newEntry);
+   });
+
+   tx.oncomplete=()=>{
+    render();
+    alert(data.entries.length+"件のデータを復元しました");
+   };
+
+   tx.onerror=()=>{
+    alert("復元に失敗しました");
+   };
+
+  }catch(error){
+   alert("バックアップファイルを読み込めませんでした");
+  }
+
+  event.target.value="";
+ };
+
+ reader.readAsText(file);
+}
 
 
 function showImport(){
