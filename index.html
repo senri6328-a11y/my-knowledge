@@ -32,6 +32,44 @@ line-height:1.6;margin:0 0 12px;color:#526174}
 .small{font-size:12px;color:#718096}
 #formArea{display:none}
 #empty{text-align:center;padding:35px;color:#718096}
+ .section-list{
+ margin:10px 0;
+ padding-left:20px;
+ color:#526174;
+ font-size:14px;
+ line-height:1.8;
+}
+.section-item{
+ background:#f7f9fc;
+ border:1px solid #e0e5ec;
+ border-radius:9px;
+ margin:8px 0;
+ overflow:hidden;
+}
+.section-item summary{
+ padding:12px;
+ font-weight:600;
+ cursor:pointer;
+ color:#263b59;
+}
+.section-content{
+ padding:12px;
+ border-top:1px solid #e0e5ec;
+ white-space:pre-wrap;
+ overflow-wrap:anywhere;
+ line-height:1.7;
+ color:#526174;
+}
+.detail-controls{
+ display:flex;
+ gap:8px;
+ margin:10px 0;
+}
+.detail-controls button{
+ flex:1;
+ font-size:13px;
+ padding:9px 5px;
+}
 </style>
 </head>
 <body>
@@ -357,13 +395,17 @@ function saveEntry(){
 }
 
 function render(){
+
+function render(){
  if(!db)return;
+
  const keyword=document.getElementById("search").value.toLowerCase();
  const store=db.transaction("entries","readonly").objectStore("entries");
  const req=store.getAll();
 
  req.onsuccess=()=>{
   const entries=req.result.sort((a,b)=>b.id-a.id);
+
   const filtered=entries.filter(e=>
    e.title.toLowerCase().includes(keyword)||
    e.body.toLowerCase().includes(keyword)
@@ -387,9 +429,128 @@ function render(){
    const heading=document.createElement("h3");
    heading.textContent=e.title;
 
-   const paragraph=document.createElement("p");
-   paragraph.textContent=e.body;
+   // 本文を見出しごとに分割
+   const lines=e.body.split(/\r?\n/);
+   const sections=[];
+   let current=null;
 
+   const isHeading=line=>{
+    const s=line.trim();
+
+    if(!s)return false;
+    if(/^[-*・●]/.test(s))return false;
+
+    return (
+     /^#{1,6}\s+/.test(s) ||
+     /^【.+】$/.test(s) ||
+     /^(第?\d+[章節.．、]\s*).{1,30}$/.test(s) ||
+     (s.length<=28 && !/[。！？：:、]$/.test(s))
+    );
+   };
+
+   lines.forEach(line=>{
+    if(isHeading(line)){
+     current={
+      title:line.trim().replace(/^#{1,6}\s+/,""),
+      body:""
+     };
+     sections.push(current);
+    }else if(current){
+     current.body+=line+"\n";
+    }else{
+     if(!sections.length){
+      current={title:"概要",body:""};
+      sections.push(current);
+     }
+     current.body+=line+"\n";
+    }
+   });
+
+   if(sections.length===0){
+    sections.push({title:"本文",body:e.body});
+   }
+
+   // タイトルと見出しだけ表示
+   const sectionList=document.createElement("ul");
+   sectionList.className="section-list";
+
+   sections.forEach(s=>{
+    const li=document.createElement("li");
+    li.textContent=s.title;
+    sectionList.append(li);
+   });
+
+   card.append(heading,sectionList);
+
+   // 一括開閉ボタン
+   const controls=document.createElement("div");
+   controls.className="detail-controls";
+
+   const openAll=document.createElement("button");
+   openAll.className="secondary";
+   openAll.textContent="すべて開く";
+
+   const closeAll=document.createElement("button");
+   closeAll.className="secondary";
+   closeAll.textContent="すべて閉じる";
+
+   controls.append(openAll,closeAll);
+   card.append(controls);
+
+   // 各項目の表示・非表示
+   const sectionDetails=[];
+
+   sections.forEach(s=>{
+    const detail=document.createElement("details");
+    detail.className="section-item";
+
+    const summary=document.createElement("summary");
+    summary.textContent=s.title;
+
+    const content=document.createElement("div");
+    content.className="section-content";
+    content.textContent=s.body.trim()||"本文なし";
+
+    detail.append(summary,content);
+    card.append(detail);
+    sectionDetails.push(detail);
+   });
+
+   openAll.onclick=()=>{
+    sectionDetails.forEach(d=>d.open=true);
+   };
+
+   closeAll.onclick=()=>{
+    sectionDetails.forEach(d=>d.open=false);
+   };
+
+   // 参考URL
+   if(e.references && e.references.length){
+    const refDetail=document.createElement("details");
+    refDetail.className="section-item";
+
+    const refSummary=document.createElement("summary");
+    refSummary.textContent=`参考URL（${e.references.length}件）`;
+
+    const refContent=document.createElement("div");
+    refContent.className="section-content";
+
+    e.references.forEach(url=>{
+     const a=document.createElement("a");
+     a.href=url;
+     a.textContent=url;
+     a.target="_blank";
+     a.rel="noopener noreferrer";
+     const p=document.createElement("p");
+     p.append(a);
+     refContent.append(p);
+    });
+
+    refDetail.append(refSummary,refContent);
+    card.append(refDetail);
+   }
+
+   // 編集・削除
    const actions=document.createElement("div");
    actions.className="actions";
 
@@ -404,27 +565,13 @@ function render(){
    del.onclick=()=>deleteEntry(e.id);
 
    actions.append(edit,del);
-   
-const refs=document.createElement("div");
-refs.className="small";
-
-(e.references||[]).forEach(url=>{
- const a=document.createElement("a");
- a.href=url;
- a.textContent="参考資料を開く ↗";
- a.target="_blank";
- a.rel="noopener noreferrer";
- const p=document.createElement("p");
- p.append(a);
- refs.append(p);
-});
-
-card.append(heading,paragraph,refs,actions);
+   card.append(actions);
 
    list.append(card);
   });
  };
 }
+
 
 function editEntry(e){
  editingReferences=e.references||[];
